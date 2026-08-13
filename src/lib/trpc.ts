@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "./supabase";
+import { dispararEmail, type Evento } from "./webhooks";
+import { ACOES_EMAIL, DESCRICOES_EMAIL, getPerfil } from "./copy-diagnostico";
 
 /**
  * Camada de captura de leads.
@@ -69,13 +71,7 @@ async function insert(table: string, row: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-// ─── Perfis do Diagnóstico (mesma régua do backend original) ──────────────────
-export function getPerfil(escore: number) {
-  if (escore <= 30) return { perfil: "colapso", titulo: "Colapso do Guardião", cor: "#EF4444" };
-  if (escore <= 55) return { perfil: "alerta", titulo: "Guardião em Alerta", cor: "#F59E0B" };
-  if (escore <= 75) return { perfil: "transicao", titulo: "Guardião em Transição", cor: "#3B82F6" };
-  return { perfil: "ativo", titulo: "Guardião Ativo", cor: "#10B981" };
-}
+export { getPerfil };
 
 export const EBOOK_PDF_URL = "/As_10_Horas_Escondidas.pdf";
 
@@ -86,6 +82,12 @@ interface DiagnosticoInput {
   especialidade?: string;
   escore: number;
   respostas: Record<string, number>;
+  /**
+   * As páginas da Masterclass e do Desafio reaproveitam este endpoint. Sem esta
+   * marcação, quem se inscreve na Masterclass receberia o e-mail do diagnóstico
+   * — que foi o que aconteceu no material original.
+   */
+  evento?: Evento;
 }
 
 interface CalculadoraInput {
@@ -119,6 +121,27 @@ export const trpc = {
           perfil: p.perfil,
           respostas: input.respostas,
         });
+
+        const evento = input.evento ?? "diagnostico";
+        await dispararEmail(evento, {
+          nome: input.nome,
+          email: input.email,
+          telefone: input.telefone,
+          especialidade: input.especialidade ?? null,
+          // Só faz sentido falar em escore/perfil no diagnóstico de verdade.
+          ...(evento === "diagnostico"
+            ? {
+                escore: input.escore,
+                perfil: p.perfil,
+                titulo: p.titulo,
+                cor: p.cor,
+                descricao: DESCRICOES_EMAIL[p.perfil],
+                acoes: ACOES_EMAIL[p.perfil],
+                respostas: input.respostas,
+              }
+            : {}),
+        });
+
         return { success: true as const, perfil: p.perfil, titulo: p.titulo };
       }),
     },
@@ -134,6 +157,16 @@ export const trpc = {
           valor_consulta: input.valorConsulta,
           hora_real: input.horaReal,
         });
+
+        await dispararEmail("calculadora", {
+          nome: input.nome,
+          email: input.email,
+          telefone: input.telefone,
+          horasSemanais: input.horasSemanais,
+          valorConsulta: input.valorConsulta,
+          horaReal: input.horaReal,
+        });
+
         return { success: true as const };
       }),
     },
@@ -149,6 +182,17 @@ export const trpc = {
           origem: input.origem ?? "ebook_10_horas",
           consentimento: true,
         });
+
+        await dispararEmail("ebook", {
+          nome: input.nome,
+          email: input.email,
+          telefone: input.telefone,
+          especialidade: input.especialidade ?? null,
+          origem: input.origem ?? "ebook_10_horas",
+          // URL absoluta: o e-mail é lido fora do site.
+          pdfUrl: new URL(EBOOK_PDF_URL, window.location.origin).toString(),
+        });
+
         return { success: true as const, pdfUrl: EBOOK_PDF_URL };
       }),
     },

@@ -41,6 +41,7 @@ function CheckoutModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
       especialidade: form.especialidade || "Desafio 21 Dias",
       escore: 50,
       respostas: { produto: 1, desafio21dias: 1 },
+      evento: "desafio",
     });
   };
 

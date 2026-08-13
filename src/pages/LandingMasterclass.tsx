@@ -55,6 +55,7 @@ function FormInscricao({ preco }: { preco: string }) {
       especialidade: "Masterclass",
       escore: 50,
       respostas: { masterclass: 1 },
+      evento: "masterclass",
     });
   };
 

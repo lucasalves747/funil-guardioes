@@ -1,0 +1,62 @@
+<!--
+  E-MAIL 2 — Resultado do Diagnóstico do Médico Esgotado
+  Evento do webhook: diagnostico     Enviar para: {{email}}
+  Assunto sugerido:  Seu Diagnóstico Guardião — {{titulo}} ({{escore}}/100)
+
+  Merge tags: {{nome}} · {{escore}} · {{titulo}} · {{cor}} · {{descricao}} · {{acoes}}
+
+  IMPORTANTE — este é o único e-mail personalizado por perfil. O webhook já
+  manda `descricao` e `acoes` prontos para o perfil daquele lead, então você
+  precisa de UM template só, não de quatro. O bloco marcado abaixo deve ser
+  repetido para cada item de `acoes` (são sempre 5).
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head><meta charset="UTF-8" /><title>Diagnóstico Guardião</title></head>
+  <body style="margin:0;padding:0;background:#0A0A0A;font-family:Georgia,serif;">
+    <div style="max-width:600px;margin:0 auto;background:#0A0A0A;color:#F5F0E8;">
+      <div style="background:linear-gradient(135deg,#0A0A0A,#1a1208);padding:40px;border-bottom:1px solid rgba(201,168,76,0.2);">
+        <p style="color:#C9A84C;font-size:10px;letter-spacing:0.3em;text-transform:uppercase;margin:0 0 8px;">COMUNIDADE GUARDIÕES</p>
+        <h1 style="color:#F5F0E8;font-size:26px;font-weight:300;margin:0;">
+          Dr(a). {{nome}}, <em style="color:#C9A84C;">aqui está o seu resultado.</em>
+        </h1>
+      </div>
+
+      <div style="padding:32px 40px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">
+        <div style="font-size:72px;font-weight:700;color:{{cor}};line-height:1;">{{escore}}</div>
+        <div style="color:rgba(245,240,232,0.4);font-size:12px;letter-spacing:0.2em;text-transform:uppercase;">pontos de 100</div>
+        <div style="margin-top:12px;display:inline-block;padding:6px 20px;border:1px solid {{cor}};border-radius:4px;">
+          <span style="color:{{cor}};font-size:14px;font-weight:600;letter-spacing:0.1em;">{{titulo}}</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden;margin-top:16px;">
+          <div style="background:{{cor}};height:100%;width:{{escore}}%;border-radius:4px;"></div>
+        </div>
+      </div>
+
+      <div style="padding:32px 40px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <h2 style="color:#C9A84C;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;margin:0 0 16px;">O QUE ISSO SIGNIFICA</h2>
+        <p style="color:rgba(245,240,232,0.8);font-size:15px;line-height:1.7;margin:0;">{{descricao}}</p>
+      </div>
+
+      <div style="padding:32px 40px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <h2 style="color:#C9A84C;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;margin:0 0 20px;">SUAS 5 AÇÕES PRIORITÁRIAS</h2>
+
+        <!-- ↓↓↓ REPETIR ESTE BLOCO PARA CADA ITEM DE {{acoes}} ↓↓↓ -->
+        <div style="margin-bottom:16px;">
+          <p style="color:rgba(245,240,232,0.8);font-size:14px;line-height:1.6;margin:0;">
+            <span style="color:#C9A84C;font-weight:700;">{{indice}}.</span> {{acao}}
+          </p>
+        </div>
+        <!-- ↑↑↑ FIM DO BLOCO REPETIDO ↑↑↑ -->
+      </div>
+
+      <div style="padding:32px 40px;text-align:center;">
+        <a href="https://www.drsantiagovecina.com/desafio-21-dias" style="display:inline-block;background:#C9A84C;color:#0A0A0A;text-decoration:none;padding:14px 32px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">ACESSAR O DESAFIO GUARDIÃO 21 DIAS →</a>
+        <p style="color:rgba(245,240,232,0.3);font-size:11px;margin:20px 0 0;">
+          Dr. Santiago Vecina · Williams Island, Miami, FL<br />
+          <a href="https://www.drsantiagovecina.com" style="color:rgba(201,168,76,0.6);text-decoration:none;">drsantiagovecina.com</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
