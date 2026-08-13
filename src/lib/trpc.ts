@@ -64,6 +64,7 @@ function createMutationHook<TInput, TData>(execute: (input: TInput) => Promise<T
 }
 
 async function insert(table: string, row: Record<string, unknown>) {
+  if (!supabase) throw new Error("Supabase não configurado — verifique as variáveis de ambiente.");
   const { error } = await supabase.from(table).insert(row);
   if (error) throw new Error(error.message);
 }
