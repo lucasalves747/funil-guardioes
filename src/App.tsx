@@ -13,6 +13,7 @@ import LandingMasterclass from "./pages/LandingMasterclass";
 import VendasDesafio from "./pages/VendasDesafio";
 import Obrigado from "./pages/Obrigado";
 import EbookCaptura from "./pages/EbookCaptura";
+import LivroDetalhe from "./pages/LivroDetalhe";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path={"/masterclass"} component={LandingMasterclass} />
       <Route path={"/desafio-21-dias"} component={VendasDesafio} />
       <Route path={"/obrigado"} component={Obrigado} />
+      <Route path={"/livros/:slug"} component={LivroDetalhe} />
       <Route path={"/ebook-10-horas"} component={EbookCaptura} />
       <Route path={"/10-horas-escondidas"} component={EbookCaptura} />
       <Route path={"/404"} component={NotFound} />

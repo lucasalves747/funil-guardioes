@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
+import { LIVROS } from "@/lib/livros";
 import { Instagram, Youtube, Linkedin, MessageCircle, Menu, X, ArrowRight, ChevronDown, Shield, BookOpen, Users, Star, MapPin, Award, Zap, Heart, Briefcase, Compass } from "lucide-react";
 
 // ─── Image URLs ───────────────────────────────────────────────────────────────
@@ -68,44 +70,7 @@ const PILLARS = [
   },
 ];
 
-const BOOKS = [
-  {
-    roman: "I",
-    title: "O Líder Integral",
-    subtitle: "Como Liderar a Si Mesmo Antes de Liderar Qualquer Empresa",
-    tags: ["Liderança", "Mentalidade", "Legado"],
-    link: "#",
-  },
-  {
-    roman: "II",
-    title: "Médico do Corpo e da Alma",
-    subtitle: "Descubra Como Viver com Mais Saúde, Dignidade e Propósito",
-    tags: ["Saúde", "Método", "Propósito"],
-    link: "#",
-  },
-  {
-    roman: "III",
-    title: "O Despertar de um Pai Órfão",
-    subtitle: "Reconstruindo Vidas, Reconectando Corações",
-    tags: ["Família", "Paternidade", "Recomeço"],
-    link: "#",
-  },
-  {
-    roman: "IV",
-    title: "CEO Antifrágil",
-    subtitle: "Transformando Adversidade em Vantagem Competitiva",
-    tags: ["Liderança", "Performance", "Resiliência"],
-    link: "#",
-  },
-  {
-    roman: "V",
-    title: "Vida Alinhada",
-    subtitle: "O Método para Prosperar Sem Destruir Sua Saúde e Família",
-    tags: ["Performance", "Saúde", "Propósito"],
-    link: "#",
-    soon: true,
-  },
-];
+// Os livros vivem em @/lib/livros — mesma fonte usada pelas páginas /livros/:slug.
 
 const TERRITORIES = [
   { icon: "⏳", label: "Tempo" },
@@ -493,11 +458,12 @@ function LivrosSection() {
             </h2>
 
             <div className="space-y-5">
-              {BOOKS.map((book, i) => (
-                <div
-                  key={book.roman}
+              {LIVROS.map((book, i) => (
+                <Link
+                  key={book.slug}
+                  href={`/livros/${book.slug}`}
                   className={`flex gap-5 p-5 card-dark transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-                  style={{ transitionDelay: `${i * 80}ms` }}
+                  style={{ transitionDelay: `${i * 80}ms`, textDecoration: "none", cursor: "pointer" }}
                 >
                   <span className="roman-badge flex-shrink-0 mt-1" style={{ fontSize: "1rem", opacity: 0.5 }}>{book.roman}</span>
                   <div className="flex-1 min-w-0">
@@ -518,12 +484,10 @@ function LivrosSection() {
                       ))}
                     </div>
                   </div>
-                  {!book.soon && (
-                    <button style={{ flexShrink: 0, color: "#C9A84C", opacity: 0.6, transition: "opacity 0.3s" }} onMouseEnter={e => (e.currentTarget.style.opacity = "1")} onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}>
-                      <ArrowRight size={16} />
-                    </button>
-                  )}
-                </div>
+                  <span style={{ flexShrink: 0, color: "#C9A84C", opacity: 0.6, alignSelf: "center" }}>
+                    <ArrowRight size={16} />
+                  </span>
+                </Link>
               ))}
             </div>
           </div>
