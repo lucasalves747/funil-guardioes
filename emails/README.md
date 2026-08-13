@@ -60,6 +60,43 @@ manda `descricao` e `acoes` **prontos para aquele perfil**. Ou seja: você monta
 A copy é a original do backend da plataforma Manus, preservada integralmente.
 As merge tags seguem o padrão `{{campo}}`, com os mesmos nomes do payload.
 
+## Montando no GoHighLevel
+
+São 5 workflows, um por evento. Para cada um:
+
+1. **Automation → Workflows → Create Workflow**, começando em branco.
+2. Gatilho: **Inbound Webhook**. O GHL gera a URL — é ela que eu preciso.
+3. Ensine o formato dos campos ao GHL: cole o JSON daquele evento
+   (`payloads-exemplo.json`) no campo de amostra do gatilho, ou faça um POST
+   com ele na URL gerada:
+
+   ```bash
+   curl -X POST "URL_GERADA_PELO_GHL" \
+     -H "Content-Type: application/json" \
+     -d @payload-do-evento.json
+   ```
+
+   Sem esse passo os campos não aparecem para referência nas ações seguintes.
+4. Ações do workflow — normalmente três:
+   - **Create/Update Contact** com `nome`, `email`, `telefone`
+   - **Send Email** com o template correspondente (`ebook-lead.html` ou
+     `diagnostico-lead.html`), trocando as merge tags `{{campo}}` pela
+     referência do webhook no GHL
+   - **Internal Notification** para `contato@drsantiagovecina.com`, se quiser
+     manter o aviso em tempo real que existia no material original
+5. Publique o workflow e me mande a URL. Eu cadastro na variável de ambiente
+   correspondente na Vercel.
+
+> A sintaxe exata para referenciar um campo do webhook varia com a versão do
+> builder do GHL (algo como `{{inboundWebhookRequest.nome}}`). Confirme no seu
+> painel ao montar o primeiro e o resto segue o mesmo padrão.
+
+O e-mail do diagnóstico tem uma lista, `acoes`, com 5 itens. Se o seu builder
+não iterar array com facilidade, o caminho mais simples é referenciar os itens
+por índice (`acoes.0` … `acoes.4`) — me avise se preferir que eu mande as 5
+ações como 5 campos separados (`acao1` … `acao5`), que é um ajuste de uma linha
+aqui.
+
 ## Ainda sem copy
 
 Estes eventos disparam o webhook com os dados corretos, mas **nunca tiveram
