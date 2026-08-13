@@ -4,7 +4,7 @@ import { Instagram, Youtube, Linkedin, MessageCircle, Menu, X, ArrowRight, Chevr
 // ─── Image URLs ───────────────────────────────────────────────────────────────
 const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/hero_williams_island-SQ5EpVpWBzZRWsviwoXnFm.png";
 const GUARDIOES_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/guardioes_banner-VjAmqcWTsg2GkUFAP7RQaX.png";
-const PORTRAIT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/sobre_portrait-HhUmEB89kc5tydAUxewww8.png";
+const PORTRAIT_IMG = "https://assets.cdn.filesafe.space/dkM0aNpySiIFf3uusFTa/media/69c192d4ad14000bb821045e.jpg";
 const ULTRAMAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/ultraman_performance-KuUfe3LdsowAFSQR58iwZt.png";
 const BOOKS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/books_collection-8WPXaVAWc2VMrcZMsXPcPb.png";
 
