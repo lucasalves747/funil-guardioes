@@ -12,10 +12,18 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * Configure na Vercel (e num .env.local para rodar na sua máquina):
  *
  *   VITE_SUPABASE_URL=https://SEUPROJETO.supabase.co
- *   VITE_SUPABASE_ANON_KEY=eyJ...
+ *   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
  *
- * A anon key é pública por desenho — quem protege os dados são as policies de
- * RLS definidas em supabase/desafio-schema.sql.
+ * A chave publicável é pública por desenho — quem protege os dados são as
+ * policies de RLS definidas em supabase/desafio-schema.sql.
+ *
+ * NUNCA use aqui a chave `sb_secret_...` (nem a `service_role` antiga): elas
+ * ignoram o RLS por completo, o que faria a lista de liberados deixar de valer
+ * — qualquer pessoa entraria na área de membros.
+ *
+ * O Supabase trocou o formato das chaves: `sb_publishable_...` substitui a
+ * `anon`, que será descontinuada no fim de 2026. Os dois nomes de variável são
+ * aceitos aqui para não quebrar quem já configurou com o nome antigo.
  */
 
 function definida(valor: unknown) {
@@ -23,7 +31,9 @@ function definida(valor: unknown) {
 }
 
 const URL_PROJETO = definida(import.meta.env.VITE_SUPABASE_URL);
-const ANON_KEY = definida(import.meta.env.VITE_SUPABASE_ANON_KEY);
+const ANON_KEY =
+  definida(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) ??
+  definida(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 let cliente: SupabaseClient | null = null;
 
@@ -43,7 +53,7 @@ if (URL_PROJETO && ANON_KEY) {
   }
 } else if (import.meta.env.DEV) {
   console.info(
-    "[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY não definidas. " +
+    "[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY não definidas. " +
       "A área de membros vai pedir configuração; o resto do funil segue normal.",
   );
 }

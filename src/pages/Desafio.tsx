@@ -402,7 +402,7 @@ export default function Desafio() {
             {!conta.supabaseConfigurado && (
               <p className="rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
                 A área de membros ainda não foi configurada. Defina <code>VITE_SUPABASE_URL</code> e{" "}
-                <code>VITE_SUPABASE_ANON_KEY</code> e rode <code>supabase/desafio-schema.sql</code>.
+                <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> e rode <code>supabase/desafio-schema.sql</code>.
               </p>
             )}
 
