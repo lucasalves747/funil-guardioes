@@ -2,6 +2,39 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { LABELS, PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
+
+// Estilo compartilhado pelos campos do checkout.
+const campoStyle: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(201,168,76,0.2)",
+  borderRadius: "4px",
+  padding: "12px 14px",
+  color: "#F5F0E8",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const rotuloStyle: React.CSSProperties = {
+  display: "block",
+  color: "rgba(245,240,232,0.5)",
+  fontSize: "10px",
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+  marginBottom: "6px",
+};
+
+/** Seta dourada do select, desenhada em CSS para não depender de ícone. */
+const setaSelect: React.CSSProperties = {
+  appearance: "none",
+  cursor: "pointer",
+  backgroundImage: "linear-gradient(45deg, transparent 50%, #C9A84C 50%), linear-gradient(135deg, #C9A84C 50%, transparent 50%)",
+  backgroundPosition: "calc(100% - 20px) center, calc(100% - 14px) center",
+  backgroundSize: "6px 6px, 6px 6px",
+  backgroundRepeat: "no-repeat",
+};
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
 function useCountdown(hours: number) {
@@ -18,7 +51,7 @@ function useCountdown(hours: number) {
 
 // ─── Checkout Modal ───────────────────────────────────────────────────────────
 function CheckoutModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nome: string) => void }) {
-  const [form, setForm] = useState({ nome: "", email: "", telefone: "", especialidade: "" });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", regiao: "", profissao: "" });
 
   const submitMutation = trpc.diagnostico.submitResultado.useMutation({
     onSuccess: () => {
@@ -30,7 +63,7 @@ function CheckoutModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome || !form.email || !form.telefone) {
+    if (!form.nome || !form.email || !form.telefone || !form.regiao || !form.profissao) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -38,10 +71,13 @@ function CheckoutModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
-      especialidade: form.especialidade || "Desafio 21 Dias",
+      regiao: form.regiao,
+      profissao: form.profissao,
+      especialidade: "Desafio 21 Dias",
       escore: 50,
       respostas: { produto: 1, desafio21dias: 1 },
       evento: "desafio",
+      extras: { "Pedido": "Desafio Guardião 21 Dias", "Valor": "R$997" },
     });
   };
 
@@ -69,23 +105,38 @@ function CheckoutModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {[
-            { key: "nome", label: "Nome completo *", placeholder: "Dr(a). Seu Nome", type: "text" },
-            { key: "email", label: "Email *", placeholder: "seu@email.com", type: "email" },
-            { key: "telefone", label: "WhatsApp *", placeholder: "+55 (11) 99999-9999", type: "tel" },
-            { key: "especialidade", label: "Especialidade médica", placeholder: "Ex: Cardiologia, Clínica Geral...", type: "text" },
+            { key: "nome", label: LABELS.nome, placeholder: PLACEHOLDERS.nome, type: "text" },
+            { key: "email", label: LABELS.email, placeholder: PLACEHOLDERS.email, type: "email" },
+            { key: "telefone", label: LABELS.telefone, placeholder: PLACEHOLDERS.telefone, type: "tel" },
+            { key: "regiao", label: LABELS.regiao, placeholder: PLACEHOLDERS.regiao, type: "text" },
           ].map(({ key, label, placeholder, type }) => (
             <div key={key}>
-              <label style={{ display: "block", color: "rgba(245,240,232,0.5)", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "6px" }}>{label}</label>
+              <label style={rotuloStyle}>{label} *</label>
               <input
                 type={type}
                 placeholder={placeholder}
                 value={form[key as keyof typeof form]}
                 onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                required={key !== "especialidade"}
-                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "4px", padding: "12px 14px", color: "#F5F0E8", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                required
+                style={campoStyle}
               />
             </div>
           ))}
+
+          <div>
+            <label style={rotuloStyle}>{LABELS.profissao} *</label>
+            <select
+              value={form.profissao}
+              onChange={e => setForm(prev => ({ ...prev, profissao: e.target.value }))}
+              required
+              style={{ ...campoStyle, ...setaSelect, color: form.profissao ? "#F5F0E8" : "rgba(245,240,232,0.4)" }}
+            >
+              <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+              {PROFISSOES.map(profissao => (
+                <option key={profissao} value={profissao} style={{ background: "#111", color: "#F5F0E8" }}>{profissao}</option>
+              ))}
+            </select>
+          </div>
 
           <button
             type="submit"

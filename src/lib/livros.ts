@@ -53,6 +53,7 @@ export const LIVROS: Livro[] = [
     title: "O Despertar de um Pai Órfão",
     subtitle: "Reconstruindo Vidas, Reconectando Corações",
     tags: ["Família", "Paternidade", "Recomeço"],
+    capa: "https://assets.cdn.filesafe.space/PMW6fmu3oCfXFYueuN2D/media/6936f2f72ec4f51caf93860e.png",
   },
   {
     slug: "ceo-antifragil",

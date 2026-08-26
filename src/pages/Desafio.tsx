@@ -12,10 +12,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, BookOpen, Calendar, BarChart3, Download, ChevronRight,
   ChevronLeft, Check, Clock, Dumbbell, Moon, Heart, Target,
-  FileText, Users, Mic, Star, Lock, LogIn, X, Menu
+  FileText, Users, Mic, Star, Lock, LogIn, LogOut, X, Menu, ChevronDown
 } from "lucide-react";
+import { LABELS, PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
+import * as IMG from "@/lib/imagens";
+import * as conta from "@/lib/desafio-conta";
 
-const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/plataforma_hero_bg-2Qa9MDmuzT2yfFiWSryoFj.webp";
+// A URL mora em lib/imagens.ts — trocar imagem é mexer só lá.
+const HERO_BG = IMG.RETRATO_ESCRITORIO;
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -172,20 +176,10 @@ const templates = [
   }
 ];
 
-// ─── STORAGE HELPERS ─────────────────────────────────────────────────────────
-
-const STORAGE_KEY = "guardioes_desafio_v1";
-
-function loadData(): UserData | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
-
-function saveData(data: UserData) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
-}
+// ─── STORAGE ─────────────────────────────────────────────────────────────────
+// O progresso agora vive no Supabase (lib/desafio-conta.ts), com o localStorage
+// servindo só de cache offline. Antes ficava apenas no navegador: trocar de
+// aparelho ou limpar o histórico apagava os 21 dias do participante.
 
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
@@ -234,39 +228,124 @@ export default function Desafio() {
   const [activeDay, setActiveDay] = useState(1);
   const [activeTemplate, setActiveTemplate] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [loginForm, setLoginForm] = useState({ name: "", specialty: "", code: "" });
+  const [loginForm, setLoginForm] = useState({ name: "", specialty: "", email: "", code: "" });
   const [loginError, setLoginError] = useState("");
+  /** "dados" = pedindo nome/profissão/e-mail; "codigo" = esperando os 6 dígitos. */
+  const [etapaLogin, setEtapaLogin] = useState<"dados" | "codigo">("dados");
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState("");
+  /** Enquanto true, a tela não decidiu ainda se existe sessão salva. */
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
 
-  // Load from localStorage on mount
+  // Sessão salva? Entra direto, sem pedir código de novo.
   useEffect(() => {
-    const saved = loadData();
-    if (saved) {
-      setUserData(saved);
-      setSection("dashboard");
-    }
+    let cancelado = false;
+
+    (async () => {
+      // O cache pinta a tela na hora; o servidor corrige logo em seguida.
+      const cache = conta.lerCache<UserData>();
+      if (cache && !cancelado) setUserData(cache);
+
+      try {
+        const usuario = await conta.usuarioAtual();
+        if (!usuario || cancelado) return;
+
+        const remoto = await conta.carregarProgresso<UserData>();
+        if (cancelado) return;
+
+        if (remoto) {
+          const dados: UserData = {
+            ...remoto.dados,
+            name: remoto.nome,
+            specialty: remoto.profissao,
+            startDate: remoto.dataInicio,
+          };
+          setUserData(dados);
+          conta.gravarCache(dados);
+          setSection("dashboard");
+        }
+      } catch {
+        // Sem rede ou sem configuração: fica no login, com o cache na mão.
+      } finally {
+        if (!cancelado) setVerificandoSessao(false);
+      }
+    })();
+
+    return () => { cancelado = true; };
   }, []);
 
-  // Save whenever userData changes
+  // Cada mudança no diário vai para o cache na hora e para o servidor em seguida.
   useEffect(() => {
-    if (userData) saveData(userData);
-  }, [userData]);
+    if (!userData || section === "login") return;
+    conta.gravarCache(userData);
+    void conta.salvarProgresso(userData);
+  }, [userData, section]);
 
-  const handleLogin = () => {
+  const pedirCodigo = async () => {
     if (!loginForm.name.trim()) { setLoginError("Por favor, informe o seu nome."); return; }
-    if (!loginForm.specialty.trim()) { setLoginError("Por favor, informe a sua especialidade."); return; }
-    // Simple access code check — "GUARDIAO2025" or any non-empty code
-    if (!loginForm.code.trim()) { setLoginError("Por favor, informe o código de acesso recebido por email."); return; }
-    const newUser: UserData = {
-      name: loginForm.name,
-      specialty: loginForm.specialty,
-      startDate: new Date().toISOString().split("T")[0],
-      diagnosticoInicial: {},
-      journal: {},
-      templates: {},
-    };
-    setUserData(newUser);
-    setSection("dashboard");
+    if (!loginForm.specialty.trim()) { setLoginError("Por favor, informe a sua profissão."); return; }
+    if (!loginForm.email.trim()) { setLoginError("Por favor, informe o e-mail da sua compra."); return; }
+
     setLoginError("");
+    setOcupado(true);
+    try {
+      await conta.enviarCodigo(loginForm.email);
+      setEtapaLogin("codigo");
+      setAviso(`Enviamos um código de 6 dígitos para ${loginForm.email.trim()}.`);
+    } catch (erro) {
+      setLoginError(erro instanceof Error ? erro.message : "Não foi possível enviar o código.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const confirmarCodigo = async () => {
+    if (!loginForm.code.trim()) { setLoginError("Digite o código que chegou no seu e-mail."); return; }
+
+    setLoginError("");
+    setOcupado(true);
+    try {
+      await conta.confirmarCodigo(loginForm.email, loginForm.code);
+
+      // Já participava? Recupera o diário. É a primeira vez? Cria a linha —
+      // e é neste ponto que a lista de liberados barra quem não comprou.
+      let remoto = await conta.carregarProgresso<UserData>();
+      if (!remoto) {
+        remoto = await conta.iniciarProgresso<UserData>({
+          nome: loginForm.name,
+          profissao: loginForm.specialty,
+          dados: { diagnosticoInicial: {}, journal: {}, templates: {} } as unknown as UserData,
+        });
+      }
+
+      const dados: UserData = {
+        ...remoto.dados,
+        name: remoto.nome || loginForm.name,
+        specialty: remoto.profissao || loginForm.specialty,
+        startDate: remoto.dataInicio,
+        diagnosticoInicial: remoto.dados?.diagnosticoInicial ?? {},
+        journal: remoto.dados?.journal ?? {},
+        templates: remoto.dados?.templates ?? {},
+      };
+
+      setUserData(dados);
+      conta.gravarCache(dados);
+      setSection("dashboard");
+      setAviso("");
+    } catch (erro) {
+      setLoginError(erro instanceof Error ? erro.message : "Não foi possível entrar.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const sair = async () => {
+    await conta.sair();
+    setUserData(null);
+    setLoginForm({ name: "", specialty: "", email: "", code: "" });
+    setEtapaLogin("dados");
+    setAviso("");
+    setSection("login");
   };
 
   const updateDayEntry = (day: number, field: keyof DayEntry, value: any) => {
@@ -298,6 +377,15 @@ export default function Desafio() {
 
   // ─── LOGIN ───────────────────────────────────────────────────────────────
 
+  // Sem isto, quem já tem sessão vê a tela de login piscar antes do dashboard.
+  if (verificandoSessao && section === "login") {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <Shield className="w-10 h-10 text-[#C9A84C]/40 animate-pulse" />
+      </div>
+    );
+  }
+
   if (section === "login") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4"
@@ -311,32 +399,71 @@ export default function Desafio() {
             <p className="text-[#C9A84C] text-sm tracking-widest uppercase">21 Dias — Plataforma do Participante</p>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-lg p-8 space-y-4">
-            <div>
-              <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">Seu Nome Completo</label>
-              <input type="text" value={loginForm.name} onChange={e => setLoginForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="Dr(a). Nome Sobrenome"
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
-            </div>
-            <div>
-              <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">Especialidade Médica</label>
-              <input type="text" value={loginForm.specialty} onChange={e => setLoginForm(p => ({ ...p, specialty: e.target.value }))}
-                placeholder="Ex: Cardiologista, Pediatra..."
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
-            </div>
-            <div>
-              <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">Código de Acesso</label>
-              <input type="text" value={loginForm.code} onChange={e => setLoginForm(p => ({ ...p, code: e.target.value }))}
-                placeholder="Código recebido por email"
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
-            </div>
-            {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
-            <button onClick={handleLogin}
-              className="w-full bg-[#C9A84C] hover:bg-[#B8963E] text-[#0A0A0A] font-bold py-4 rounded text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2">
-              <LogIn className="w-4 h-4" /> ACESSAR A PLATAFORMA
-            </button>
-            <p className="text-[#F5F0E8]/30 text-xs text-center">
-              Seus dados ficam salvos no seu navegador. Acesse sempre pelo mesmo dispositivo.
-            </p>
+            {!conta.supabaseConfigurado && (
+              <p className="rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
+                A área de membros ainda não foi configurada. Defina <code>VITE_SUPABASE_URL</code> e{" "}
+                <code>VITE_SUPABASE_ANON_KEY</code> e rode <code>supabase/desafio-schema.sql</code>.
+              </p>
+            )}
+
+            {etapaLogin === "dados" ? (
+              <>
+                <div>
+                  <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">Seu Nome Completo</label>
+                  <input type="text" value={loginForm.name} onChange={e => setLoginForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder={PLACEHOLDERS.nome}
+                    className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
+                </div>
+                <div>
+                  <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">{LABELS.profissao}</label>
+                  <div className="relative">
+                    <select value={loginForm.specialty} onChange={e => setLoginForm(p => ({ ...p, specialty: e.target.value }))}
+                      className={`w-full appearance-none cursor-pointer bg-white/5 border border-white/10 rounded px-4 py-3 pr-10 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors ${loginForm.specialty ? "text-[#F5F0E8]" : "text-[#F5F0E8]/30"}`}>
+                      <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+                      {PROFISSOES.map(profissao => (
+                        <option key={profissao} value={profissao} className="bg-[#111] text-[#F5F0E8]">{profissao}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 w-4 h-4 -translate-y-1/2 text-[#C9A84C]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">E-mail da sua compra</label>
+                  <input type="email" value={loginForm.email} onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))}
+                    placeholder={PLACEHOLDERS.email}
+                    className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
+                </div>
+                {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+                <button onClick={pedirCodigo} disabled={ocupado || !conta.supabaseConfigurado}
+                  className="w-full bg-[#C9A84C] hover:bg-[#B8963E] disabled:opacity-50 disabled:cursor-not-allowed text-[#0A0A0A] font-bold py-4 rounded text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2">
+                  <LogIn className="w-4 h-4" /> {ocupado ? "ENVIANDO..." : "RECEBER CÓDIGO POR E-MAIL"}
+                </button>
+                <p className="text-[#F5F0E8]/30 text-xs text-center">
+                  Use o mesmo e-mail da compra do Desafio. Enviamos um código de 6 dígitos — sem senha.
+                </p>
+              </>
+            ) : (
+              <>
+                {aviso && <p className="text-[#C9A84C] text-xs leading-relaxed">{aviso}</p>}
+                <div>
+                  <label className="text-[#F5F0E8]/60 text-xs tracking-wider uppercase block mb-2">Código de Acesso</label>
+                  <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={8}
+                    value={loginForm.code} onChange={e => setLoginForm(p => ({ ...p, code: e.target.value }))}
+                    onKeyDown={e => { if (e.key === "Enter") void confirmarCodigo(); }}
+                    placeholder="000000"
+                    className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-center text-2xl tracking-[0.4em] text-[#F5F0E8] placeholder-[#F5F0E8]/20 focus:outline-none focus:border-[#C9A84C]/60 transition-colors" />
+                </div>
+                {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+                <button onClick={confirmarCodigo} disabled={ocupado}
+                  className="w-full bg-[#C9A84C] hover:bg-[#B8963E] disabled:opacity-50 disabled:cursor-not-allowed text-[#0A0A0A] font-bold py-4 rounded text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2">
+                  <LogIn className="w-4 h-4" /> {ocupado ? "ENTRANDO..." : "ACESSAR A PLATAFORMA"}
+                </button>
+                <button onClick={() => { setEtapaLogin("dados"); setLoginError(""); setAviso(""); }}
+                  className="w-full text-[#F5F0E8]/40 hover:text-[#C9A84C] text-xs transition-colors">
+                  Usar outro e-mail
+                </button>
+              </>
+            )}
           </div>
           <p className="text-center text-[#F5F0E8]/30 text-xs mt-6">
             Dr. Santiago Vecina — Williams Island, Miami, FL
@@ -387,6 +514,10 @@ export default function Desafio() {
               <p className="text-[#F5F0E8] text-xs font-medium">{userData?.name}</p>
               <p className="text-[#F5F0E8]/40 text-xs">{userData?.specialty}</p>
             </div>
+            <button onClick={sair} title="Sair da plataforma"
+              className="hidden sm:flex items-center gap-1.5 text-[#F5F0E8]/40 hover:text-[#C9A84C] text-xs transition-colors">
+              <LogOut className="w-3.5 h-3.5" /> Sair
+            </button>
             <button className="md:hidden text-[#F5F0E8]/60 hover:text-[#F5F0E8]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>

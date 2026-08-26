@@ -1,39 +1,54 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Projeto Supabase do Dr. Santiago Vecina.
- * Os valores podem ser sobrescritos por variáveis de ambiente na Vercel.
- * A anon key é pública por design — a proteção real vem das políticas de RLS
- * definidas em supabase/schema.sql (o anônimo só pode inserir, nunca ler).
+ * Cliente Supabase da área de membros do Desafio 21 Dias.
+ *
+ * Diferente da versão que veio no material original, aqui NÃO existe projeto
+ * chumbado no código. Aquele apontava para um projeto de terceiros, sem tabela
+ * nenhuma, e todo formulário falhava em silêncio porque o código fingia estar
+ * configurado. Sem as variáveis de ambiente, este módulo assume que não está
+ * configurado e diz isso em voz alta.
+ *
+ * Configure na Vercel (e num .env.local para rodar na sua máquina):
+ *
+ *   VITE_SUPABASE_URL=https://SEUPROJETO.supabase.co
+ *   VITE_SUPABASE_ANON_KEY=eyJ...
+ *
+ * A anon key é pública por desenho — quem protege os dados são as policies de
+ * RLS definidas em supabase/desafio-schema.sql.
  */
-const PADRAO_URL = "https://zfmjeheozxmkibhoarlb.supabase.co";
-const PADRAO_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmbWplaGVvenhta2liaG9hcmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDY0OTQsImV4cCI6MjA5MDE4MjQ5NH0.UeUDEnJdWI6W6BGuyKCeGg9_fuabb7R2RzGsjAU3Q6g";
 
-/**
- * Uma variável de ambiente declarada mas vazia é tão inútil quanto uma ausente —
- * e `??` deixaria a string vazia passar, derrubando o createClient na importação
- * do módulo e apagando o site inteiro. Por isso só valor com conteúdo vale.
- */
 function definida(valor: unknown) {
   return typeof valor === "string" && valor.trim() !== "" ? valor.trim() : undefined;
 }
 
-const SUPABASE_URL = definida(import.meta.env.VITE_SUPABASE_URL) ?? PADRAO_URL;
-const SUPABASE_ANON_KEY = definida(import.meta.env.VITE_SUPABASE_ANON_KEY) ?? PADRAO_ANON_KEY;
+const URL_PROJETO = definida(import.meta.env.VITE_SUPABASE_URL);
+const ANON_KEY = definida(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-/**
- * Se a configuração ainda assim for inválida, o funil continua de pé: as páginas
- * renderizam e só o envio de formulário falha, com mensagem clara no console.
- * Nenhuma falha de configuração pode derrubar a página inteira de novo.
- */
 let cliente: SupabaseClient | null = null;
-try {
-  cliente = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: false },
-  });
-} catch (erro) {
-  console.error("[supabase] configuração inválida — a captura de leads ficará indisponível:", erro);
+
+if (URL_PROJETO && ANON_KEY) {
+  try {
+    cliente = createClient(URL_PROJETO, ANON_KEY, {
+      auth: {
+        // A sessão precisa sobreviver ao fechar do navegador: o participante
+        // volta todo dia por 21 dias e não deveria logar de novo a cada visita.
+        persistSession: true,
+        autoRefreshToken: true,
+        storageKey: "guardioes_sessao",
+      },
+    });
+  } catch (erro) {
+    console.error("[supabase] configuração inválida — a área de membros ficará indisponível:", erro);
+  }
+} else if (import.meta.env.DEV) {
+  console.info(
+    "[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY não definidas. " +
+      "A área de membros vai pedir configuração; o resto do funil segue normal.",
+  );
 }
 
 export const supabase = cliente;
+
+/** A área de membros usa isto para mostrar um aviso claro em vez de quebrar. */
+export const supabaseConfigurado = cliente !== null;

@@ -8,12 +8,16 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, BookOpen, Brain, Video, ChevronRight, Check, ArrowRight, Star } from "lucide-react";
+import { Shield, BookOpen, Brain, Video, ChevronRight, Check, ArrowRight, Star, ChevronDown } from "lucide-react";
+import { PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
+import { trpc } from "@/lib/trpc";
+import * as IMG from "@/lib/imagens";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/captura_hero_guardioes-UEMjhAEMEGZS5ctSJyFNez.webp";
-const QUIZ_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/captura_quiz_mockup-Tce3WFKyRHctDPLAoAoi53.webp";
-const EBOOK_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/captura_ebook_mockup-YsdPMwsvs9Jy46gKDjztoJ.webp";
-const MASTERCLASS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/captura_masterclass_mockup-oFnhWVK48RTk775jC9PpSs.webp";
+// As URLs moram em lib/imagens.ts — trocar imagem é mexer só lá.
+const HERO_IMG = IMG.RETRATO_ESCRITORIO;
+const QUIZ_IMG = IMG.MOCKUP_QUIZ;
+const EBOOK_IMG = IMG.MOCKUP_EBOOK;
+const MASTERCLASS_IMG = IMG.MOCKUP_MASTERCLASS;
 
 const iscas = [
   {
@@ -124,15 +128,30 @@ function StarRating({ count }: { count: number }) {
   );
 }
 
+const campoClasse =
+  "w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors";
+
 function CaptureForm({ iscaTitle }: { iscaTitle: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [crm, setCrm] = useState("");
+  const [phone, setPhone] = useState("");
+  const [region, setRegion] = useState("");
+  const [profession, setProfession] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const enviar = trpc.contato.enviar.useMutation({ onSuccess: () => setSubmitted(true) });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && email) setSubmitted(true);
+    enviar.mutate({
+      nome: name,
+      email,
+      telefone: phone,
+      regiao: region,
+      profissao: profession,
+      tags: ["isca"],
+      extras: { "Material solicitado": iscaTitle },
+    });
   };
 
   if (submitted) {
@@ -156,37 +175,66 @@ function CaptureForm({ iscaTitle }: { iscaTitle: string }) {
       <div>
         <input
           type="text"
-          placeholder="Seu nome completo"
+          placeholder={PLACEHOLDERS.nome}
           value={name}
           onChange={e => setName(e.target.value)}
           required
-          className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors"
+          className={campoClasse}
         />
       </div>
       <div>
         <input
           type="email"
-          placeholder="Seu melhor email"
+          placeholder={PLACEHOLDERS.email}
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
-          className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors"
+          className={campoClasse}
+        />
+      </div>
+      <div>
+        <input
+          type="tel"
+          placeholder={PLACEHOLDERS.telefone}
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          required
+          className={campoClasse}
         />
       </div>
       <div>
         <input
           type="text"
-          placeholder="CRM (opcional)"
-          value={crm}
-          onChange={e => setCrm(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-[#F5F0E8] placeholder-[#F5F0E8]/30 text-sm focus:outline-none focus:border-[#C9A84C]/60 transition-colors"
+          placeholder={PLACEHOLDERS.regiao}
+          value={region}
+          onChange={e => setRegion(e.target.value)}
+          required
+          className={campoClasse}
         />
       </div>
+      <div className="relative">
+        <select
+          value={profession}
+          onChange={e => setProfession(e.target.value)}
+          required
+          className={`${campoClasse} appearance-none pr-10 cursor-pointer ${profession ? "" : "text-[#F5F0E8]/30"}`}
+        >
+          <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+          {PROFISSOES.map(profissao => (
+            <option key={profissao} value={profissao} className="bg-[#111] text-[#F5F0E8]">{profissao}</option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 w-4 h-4 -translate-y-1/2 text-[#C9A84C]" />
+      </div>
+      {enviar.error && (
+        <p className="text-red-400 text-xs text-center">Não foi possível enviar agora. Confira os dados e tente novamente.</p>
+      )}
       <button
         type="submit"
-        className="w-full bg-[#C9A84C] hover:bg-[#B8963E] text-[#0A0A0A] font-bold py-4 rounded text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 group"
+        disabled={enviar.isPending}
+        className="w-full bg-[#C9A84C] hover:bg-[#B8963E] disabled:opacity-50 disabled:cursor-not-allowed text-[#0A0A0A] font-bold py-4 rounded text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 group"
       >
-        QUERO ACESSO GRATUITO
+        {enviar.isPending ? "ENVIANDO..." : "QUERO ACESSO GRATUITO"}
         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
       </button>
       <p className="text-[#F5F0E8]/30 text-xs text-center">

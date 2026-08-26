@@ -10,6 +10,7 @@ import {
   Shield,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { LABELS, PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
 
 const EBOOK_URL = "/As_10_Horas_Escondidas.pdf";
 
@@ -67,7 +68,8 @@ export default function EbookCaptura() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [specialty, setSpecialty] = useState("");
+  const [region, setRegion] = useState("");
+  const [profession, setProfession] = useState("");
   const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -93,7 +95,8 @@ export default function EbookCaptura() {
       nome: name,
       email,
       telefone: phone,
-      especialidade: specialty || undefined,
+      regiao: region,
+      profissao: profession,
       origem: source,
     });
   };
@@ -192,17 +195,28 @@ export default function EbookCaptura() {
           </div>
           <form onSubmit={handleSubmit} className="border border-[#C9A84C]/25 bg-[#111111] p-7 md:p-9">
             <div className="grid gap-4">
-              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">Nome completo *
-                <input value={name} onChange={(event) => setName(event.target.value)} required placeholder="Dr(a). João Silva" className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
+              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">{LABELS.nome} *
+                <input value={name} onChange={(event) => setName(event.target.value)} required placeholder={PLACEHOLDERS.nome} className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
               </label>
-              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">E-mail profissional *
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="dr.joao@clinica.com.br" className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
+              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">{LABELS.email} *
+                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder={PLACEHOLDERS.email} className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
               </label>
-              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">WhatsApp *
-                <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required placeholder="+55 (11) 99999-9999" className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
+              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">{LABELS.telefone} *
+                <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required placeholder={PLACEHOLDERS.telefone} className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
               </label>
-              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">Especialidade <span className="normal-case tracking-normal text-[#F5F0E8]/35">(opcional)</span>
-                <input value={specialty} onChange={(event) => setSpecialty(event.target.value)} placeholder="Ex.: Cardiologia" className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
+              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">{LABELS.regiao} *
+                <input value={region} onChange={(event) => setRegion(event.target.value)} required placeholder={PLACEHOLDERS.regiao} className="mt-2 w-full border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70" />
+              </label>
+              <label className="text-xs uppercase tracking-[0.16em] text-[#F5F0E8]/60">{LABELS.profissao} *
+                <span className="relative mt-2 block">
+                  <select value={profession} onChange={(event) => setProfession(event.target.value)} required className="w-full appearance-none border border-[#C9A84C]/20 bg-[#0A0A0A] px-4 py-3 pr-10 text-sm normal-case tracking-normal text-[#F5F0E8] outline-none transition focus:border-[#C9A84C]/70">
+                    <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+                    {PROFISSOES.map((profissao) => (
+                      <option key={profissao} value={profissao} className="bg-[#111111] text-[#F5F0E8]">{profissao}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#C9A84C]" />
+                </span>
               </label>
               <label className="flex cursor-pointer items-start gap-3 pt-2 text-xs leading-relaxed text-[#F5F0E8]/50">
                 <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5 accent-[#C9A84C]" />

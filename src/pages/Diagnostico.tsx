@@ -1,6 +1,29 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { LABELS, PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
+
+// Estilo compartilhado pelos campos da etapa de captura.
+const campoStyle: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(201,168,76,0.2)",
+  borderRadius: "4px",
+  padding: "14px 16px",
+  color: "#F5F0E8",
+  fontSize: "15px",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const rotuloStyle: React.CSSProperties = {
+  display: "block",
+  color: "rgba(245,240,232,0.5)",
+  fontSize: "11px",
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+  marginBottom: "8px",
+};
 
 // ─── Perguntas do Quiz ────────────────────────────────────────────────────────
 const PERGUNTAS = [
@@ -97,7 +120,7 @@ export default function Diagnostico() {
   const [fase, setFase] = useState<Fase>("intro");
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [perguntaAtual, setPerguntaAtual] = useState(0);
-  const [form, setForm] = useState({ nome: "", email: "", telefone: "", especialidade: "" });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", regiao: "", profissao: "" });
   const [resultado, setResultado] = useState<{ escore: number; perfil: string; titulo: string } | null>(null);
 
   const submitMutation = trpc.diagnostico.submitResultado.useMutation({
@@ -127,7 +150,7 @@ export default function Diagnostico() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome || !form.email || !form.telefone) {
+    if (!form.nome || !form.email || !form.telefone || !form.regiao || !form.profissao) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -135,7 +158,8 @@ export default function Diagnostico() {
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
-      especialidade: form.especialidade || undefined,
+      regiao: form.regiao,
+      profissao: form.profissao,
       escore: calcularEscore(),
       respostas,
     });
@@ -274,33 +298,38 @@ export default function Diagnostico() {
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {[
-                { key: "nome", label: "Nome completo *", placeholder: "Dr(a). Seu Nome", type: "text" },
-                { key: "email", label: "Email *", placeholder: "seu@email.com", type: "email" },
-                { key: "telefone", label: "WhatsApp / Telefone *", placeholder: "+55 (11) 99999-9999", type: "tel" },
-                { key: "especialidade", label: "Especialidade médica", placeholder: "Ex: Cardiologia, Clínica Geral...", type: "text" },
+                { key: "nome", label: LABELS.nome, placeholder: PLACEHOLDERS.nome, type: "text" },
+                { key: "email", label: LABELS.email, placeholder: PLACEHOLDERS.email, type: "email" },
+                { key: "telefone", label: LABELS.telefone, placeholder: PLACEHOLDERS.telefone, type: "tel" },
+                { key: "regiao", label: LABELS.regiao, placeholder: PLACEHOLDERS.regiao, type: "text" },
               ].map(({ key, label, placeholder, type }) => (
                 <div key={key}>
-                  <label style={{ display: "block", color: "rgba(245,240,232,0.5)", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>{label}</label>
+                  <label style={rotuloStyle}>{label} *</label>
                   <input
                     type={type}
                     placeholder={placeholder}
                     value={form[key as keyof typeof form]}
                     onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                    required={key !== "especialidade"}
-                    style={{
-                      width: "100%",
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(201,168,76,0.2)",
-                      borderRadius: "4px",
-                      padding: "14px 16px",
-                      color: "#F5F0E8",
-                      fontSize: "15px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    required
+                    style={campoStyle}
                   />
                 </div>
               ))}
+
+              <div>
+                <label style={rotuloStyle}>{LABELS.profissao} *</label>
+                <select
+                  value={form.profissao}
+                  onChange={e => setForm(prev => ({ ...prev, profissao: e.target.value }))}
+                  required
+                  style={{ ...campoStyle, appearance: "none", cursor: "pointer", color: form.profissao ? "#F5F0E8" : "rgba(245,240,232,0.4)", backgroundImage: "linear-gradient(45deg, transparent 50%, #C9A84C 50%), linear-gradient(135deg, #C9A84C 50%, transparent 50%)", backgroundPosition: "calc(100% - 20px) center, calc(100% - 14px) center", backgroundSize: "6px 6px, 6px 6px", backgroundRepeat: "no-repeat" }}
+                >
+                  <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+                  {PROFISSOES.map(profissao => (
+                    <option key={profissao} value={profissao} style={{ background: "#111", color: "#F5F0E8" }}>{profissao}</option>
+                  ))}
+                </select>
+              </div>
 
               <button
                 type="submit"

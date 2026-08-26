@@ -1,15 +1,19 @@
 import { useCallback, useRef, useState } from "react";
-import { supabase } from "./supabase";
 import { dispararEmail, type Evento } from "./webhooks";
 import { ACOES_EMAIL, DESCRICOES_EMAIL, getPerfil } from "./copy-diagnostico";
+import { enviarContato, type ContatoInput } from "./contatos";
 
 /**
  * Camada de captura de leads.
  *
  * As páginas do funil foram escritas contra o backend tRPC da plataforma Manus.
  * Aqui esse contrato é mantido intacto (`trpc.ebook.capturarLead.useMutation()`),
- * mas a persistência acontece direto no Supabase — sem servidor próprio, o que
- * permite hospedar o funil inteiro como site estático na Vercel.
+ * mas sem servidor próprio: o funil inteiro é um site estático na Vercel.
+ *
+ * Destino único do lead: o CRM de Contatos (lib/contatos.ts). O material
+ * original gravava num projeto Supabase de terceiros, sem acesso e sem as
+ * tabelas criadas — todo formulário falhava em silêncio. Esse caminho foi
+ * removido; quem guarda o lead agora é o CRM.
  */
 
 interface MutationOptions<TInput, TData> {
@@ -65,12 +69,6 @@ function createMutationHook<TInput, TData>(execute: (input: TInput) => Promise<T
   };
 }
 
-async function insert(table: string, row: Record<string, unknown>) {
-  if (!supabase) throw new Error("Supabase não configurado — verifique as variáveis de ambiente.");
-  const { error } = await supabase.from(table).insert(row);
-  if (error) throw new Error(error.message);
-}
-
 export { getPerfil };
 
 export const EBOOK_PDF_URL = "/As_10_Horas_Escondidas.pdf";
@@ -79,6 +77,8 @@ interface DiagnosticoInput {
   nome: string;
   email: string;
   telefone: string;
+  regiao?: string;
+  profissao?: string;
   especialidade?: string;
   escore: number;
   respostas: Record<string, number>;
@@ -88,23 +88,33 @@ interface DiagnosticoInput {
    * — que foi o que aconteceu no material original.
    */
   evento?: Evento;
+  /** O que a página perguntou além dos cinco campos padrão. Vira o comentário no CRM. */
+  extras?: Record<string, unknown>;
 }
 
 interface CalculadoraInput {
   nome: string;
   email: string;
   telefone: string;
+  regiao?: string;
+  profissao?: string;
   horasSemanais: number;
   valorConsulta: number;
   horaReal: string;
+  /** O que a página perguntou além dos cinco campos padrão. Vira o comentário no CRM. */
+  extras?: Record<string, unknown>;
 }
 
 interface EbookInput {
   nome: string;
   email: string;
   telefone: string;
+  regiao?: string;
+  profissao?: string;
   especialidade?: string;
   origem?: string;
+  /** O que a página perguntou além dos cinco campos padrão. Vira o comentário no CRM. */
+  extras?: Record<string, unknown>;
 }
 
 export const trpc = {
@@ -112,21 +122,30 @@ export const trpc = {
     submitResultado: {
       useMutation: createMutationHook(async (input: DiagnosticoInput) => {
         const p = getPerfil(input.escore);
-        await insert("diagnostico_leads", {
+        const evento = input.evento ?? "diagnostico";
+
+        await enviarContato({
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
-          especialidade: input.especialidade ?? null,
-          escore: input.escore,
-          perfil: p.perfil,
-          respostas: input.respostas,
+          regiao: input.regiao,
+          profissao: input.profissao,
+          tags: [evento],
+          extras: {
+            // Escore e perfil só dizem alguma coisa no diagnóstico de verdade.
+            ...(evento === "diagnostico"
+              ? { Escore: input.escore, Perfil: p.titulo, Respostas: input.respostas }
+              : {}),
+            ...input.extras,
+          },
         });
 
-        const evento = input.evento ?? "diagnostico";
         await dispararEmail(evento, {
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
+          regiao: input.regiao ?? null,
+          profissao: input.profissao ?? null,
           especialidade: input.especialidade ?? null,
           // Só faz sentido falar em escore/perfil no diagnóstico de verdade.
           ...(evento === "diagnostico"
@@ -149,19 +168,27 @@ export const trpc = {
   calculadora: {
     submitResultado: {
       useMutation: createMutationHook(async (input: CalculadoraInput) => {
-        await insert("calculadora_leads", {
+        await enviarContato({
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
-          horas_semanais: input.horasSemanais,
-          valor_consulta: input.valorConsulta,
-          hora_real: input.horaReal,
+          regiao: input.regiao,
+          profissao: input.profissao,
+          tags: ["calculadora"],
+          extras: {
+            "Horas por semana": input.horasSemanais,
+            "Valor por consulta": input.valorConsulta,
+            "Hora real calculada": input.horaReal,
+            ...input.extras,
+          },
         });
 
         await dispararEmail("calculadora", {
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
+          regiao: input.regiao ?? null,
+          profissao: input.profissao ?? null,
           horasSemanais: input.horasSemanais,
           valorConsulta: input.valorConsulta,
           horaReal: input.horaReal,
@@ -174,19 +201,26 @@ export const trpc = {
   ebook: {
     capturarLead: {
       useMutation: createMutationHook(async (input: EbookInput) => {
-        await insert("ebook_leads", {
+        await enviarContato({
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
-          especialidade: input.especialidade ?? null,
-          origem: input.origem ?? "ebook_10_horas",
-          consentimento: true,
+          regiao: input.regiao,
+          profissao: input.profissao,
+          tags: ["ebook"],
+          extras: {
+            "Origem do link": input.origem ?? "ebook_10_horas",
+            "Aceitou receber contato": "sim",
+            ...input.extras,
+          },
         });
 
         await dispararEmail("ebook", {
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
+          regiao: input.regiao ?? null,
+          profissao: input.profissao ?? null,
           especialidade: input.especialidade ?? null,
           origem: input.origem ?? "ebook_10_horas",
           // URL absoluta: o e-mail é lido fora do site.
@@ -194,6 +228,19 @@ export const trpc = {
         });
 
         return { success: true as const, pdfUrl: EBOOK_PDF_URL };
+      }),
+    },
+  },
+  /**
+   * Captura simples, sem tabela própria no Supabase: os formulários de contato
+   * da home e das iscas, que antes só marcavam "enviado" na tela sem mandar o
+   * lead a lugar nenhum.
+   */
+  contato: {
+    enviar: {
+      useMutation: createMutationHook(async (input: ContatoInput) => {
+        await enviarContato(input);
+        return { success: true as const };
       }),
     },
   },

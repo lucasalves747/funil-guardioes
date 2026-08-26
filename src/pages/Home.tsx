@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { LIVROS } from "@/lib/livros";
+import { LABELS, PLACEHOLDERS, PROFISSOES } from "@/lib/lead-fields";
+import { trpc } from "@/lib/trpc";
+import * as IMG from "@/lib/imagens";
 import { Instagram, Youtube, Linkedin, MessageCircle, Menu, X, ArrowRight, ChevronDown, Shield, BookOpen, Users, Star, MapPin, Award, Zap, Heart, Briefcase, Compass } from "lucide-react";
 
 // ─── Image URLs ───────────────────────────────────────────────────────────────
-const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/hero_williams_island-SQ5EpVpWBzZRWsviwoXnFm.png";
-const GUARDIOES_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/guardioes_banner-VjAmqcWTsg2GkUFAP7RQaX.png";
-const PORTRAIT_IMG = "https://assets.cdn.filesafe.space/dkM0aNpySiIFf3uusFTa/media/69c192d4ad14000bb821045e.jpg";
-const ULTRAMAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/ultraman_performance-KuUfe3LdsowAFSQR58iwZt.png";
-const BOOKS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029042428/CkXWqekrf35rtrHkYVC25q/books_collection-8WPXaVAWc2VMrcZMsXPcPb.png";
+// As URLs moram em lib/imagens.ts — trocar imagem é mexer só lá.
+const HERO_BG = IMG.RETRATO_ESCRITORIO;
+const GUARDIOES_BG = IMG.FAMILIA;
+const PORTRAIT_IMG = IMG.RETRATO_TERNO;
+const ULTRAMAN_IMG = IMG.ULTRAMAN;
+const BOOKS_IMG = IMG.LIVROS_COLECAO;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const NAV_LINKS = [
@@ -608,14 +612,45 @@ function DepoimentosSection() {
 }
 
 // ─── Contato ──────────────────────────────────────────────────────────────────
+const contatoLabelStyle: React.CSSProperties = {
+  fontFamily: "'DM Sans', sans-serif",
+  fontSize: "0.65rem",
+  fontWeight: 500,
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+  color: "rgba(201,168,76,0.7)",
+  display: "block",
+  marginBottom: "0.5rem",
+};
+
+/** Seta dourada do select, desenhada em CSS para não depender de ícone. */
+const setaSelect: React.CSSProperties = {
+  appearance: "none",
+  cursor: "pointer",
+  backgroundImage: "linear-gradient(45deg, transparent 50%, #C9A84C 50%), linear-gradient(135deg, #C9A84C 50%, transparent 50%)",
+  backgroundPosition: "calc(100% - 20px) center, calc(100% - 14px) center",
+  backgroundSize: "6px 6px, 6px 6px",
+  backgroundRepeat: "no-repeat",
+};
+
 function ContatoSection() {
   const { ref, isVisible } = useIntersectionObserver();
-  const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", regiao: "", profissao: "", mensagem: "" });
   const [sent, setSent] = useState(false);
+
+  const enviar = trpc.contato.enviar.useMutation({ onSuccess: () => setSent(true) });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    enviar.mutate({
+      nome: form.nome,
+      email: form.email,
+      telefone: form.telefone,
+      regiao: form.regiao,
+      profissao: form.profissao,
+      tags: ["contato-home"],
+      extras: { "Como posso ajudar": form.mensagem },
+    });
   };
 
   return (
@@ -686,47 +721,66 @@ function ContatoSection() {
             ) : (
               <form onSubmit={handleSubmit} className="card-dark p-8 space-y-5">
                 <div>
-                  <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)", display: "block", marginBottom: "0.5rem" }}>
-                    Seu Nome
-                  </label>
+                  <label style={contatoLabelStyle}>{LABELS.nome}</label>
                   <input
                     type="text"
                     className="input-dark"
-                    placeholder="Como posso te chamar?"
+                    placeholder={PLACEHOLDERS.nome}
                     value={form.nome}
                     onChange={e => setForm({ ...form, nome: e.target.value })}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)", display: "block", marginBottom: "0.5rem" }}>
-                    Seu Melhor E-mail
-                  </label>
+                  <label style={contatoLabelStyle}>{LABELS.email}</label>
                   <input
                     type="email"
                     className="input-dark"
-                    placeholder="seu@email.com"
+                    placeholder={PLACEHOLDERS.email}
                     value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)", display: "block", marginBottom: "0.5rem" }}>
-                    Telefone / WhatsApp
-                  </label>
+                  <label style={contatoLabelStyle}>{LABELS.telefone}</label>
                   <input
                     type="tel"
                     className="input-dark"
-                    placeholder="+1 (305) 000-0000"
+                    placeholder={PLACEHOLDERS.telefone}
                     value={form.telefone}
                     onChange={e => setForm({ ...form, telefone: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)", display: "block", marginBottom: "0.5rem" }}>
-                    Como Posso Ajudar?
-                  </label>
+                  <label style={contatoLabelStyle}>{LABELS.regiao}</label>
+                  <input
+                    type="text"
+                    className="input-dark"
+                    placeholder={PLACEHOLDERS.regiao}
+                    value={form.regiao}
+                    onChange={e => setForm({ ...form, regiao: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={contatoLabelStyle}>{LABELS.profissao}</label>
+                  <select
+                    className="input-dark"
+                    value={form.profissao}
+                    onChange={e => setForm({ ...form, profissao: e.target.value })}
+                    required
+                    style={{ ...setaSelect, color: form.profissao ? undefined : "rgba(245,240,232,0.4)" }}
+                  >
+                    <option value="" disabled>{PLACEHOLDERS.profissao}</option>
+                    {PROFISSOES.map(profissao => (
+                      <option key={profissao} value={profissao} style={{ background: "#111", color: "#F5F0E8" }}>{profissao}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={contatoLabelStyle}>Como Posso Ajudar?</label>
                   <textarea
                     className="input-dark"
                     rows={4}
@@ -736,8 +790,13 @@ function ContatoSection() {
                     style={{ resize: "none" }}
                   />
                 </div>
-                <button type="submit" className="btn-gold w-full justify-center">
-                  Agendar Conversa Estratégica
+                {enviar.error && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", color: "#F87171", textAlign: "center" }}>
+                    Não foi possível enviar agora. Confira os dados e tente novamente.
+                  </p>
+                )}
+                <button type="submit" className="btn-gold w-full justify-center" disabled={enviar.isPending}>
+                  {enviar.isPending ? "Enviando..." : "Agendar Conversa Estratégica"}
                   <ArrowRight size={14} />
                 </button>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.7rem", color: "rgba(245,240,232,0.25)", textAlign: "center" }}>
