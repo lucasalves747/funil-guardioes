@@ -1,48 +1,56 @@
 {
-  "_leiame": "Payloads reais capturados do site em teste. Use-os para o GHL aprender o formato dos campos: no gatilho Inbound Webhook, cole o JSON do evento em 'Sample Request' (ou faça um POST com ele na URL gerada). Depois disso os campos ficam disponíveis como referência dentro do workflow.",
+  "_leiame": "Formato exato do POST que o site faz em cada webhook. No GHL, gatilho Inbound Webhook: cole o JSON do evento em 'Sample Request' (ou faca um POST com ele na URL gerada) para os campos ficarem disponiveis dentro do workflow.",
+
+  "_campos_comuns": "Todo evento traz sempre: evento, enviadoEm, origemPagina, nome, email, telefone, regiao, profissao. Os cinco ultimos vem do formulario; os tres primeiros o site acrescenta.",
 
   "ebook": {
     "evento": "ebook",
-    "enviadoEm": "2026-08-13T21:44:22.168Z",
+    "enviadoEm": "2026-08-26T21:44:22.168Z",
     "origemPagina": "/ebook-10-horas",
-    "nome": "Carlos Almeida",
-    "email": "carlos@exemplo.com",
-    "telefone": "+5511999998888",
-    "especialidade": "Cardiologia",
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "telefone": "+55 11 99999-0000",
+    "regiao": "São Paulo - SP",
+    "profissao": "Limpeza residencial e comercial",
+    "especialidade": null,
     "origem": "reel_teste",
     "pdfUrl": "https://funil-guardioes.vercel.app/As_10_Horas_Escondidas.pdf"
   },
 
   "diagnostico": {
     "evento": "diagnostico",
-    "enviadoEm": "2026-08-13T21:44:57.705Z",
+    "enviadoEm": "2026-08-26T21:44:57.705Z",
     "origemPagina": "/diagnostico",
-    "nome": "Carlos Almeida",
-    "email": "carlos@exemplo.com",
-    "telefone": "+5511999998888",
-    "especialidade": "Cardiologia",
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "telefone": "+55 11 99999-0000",
+    "regiao": "São Paulo - SP",
+    "profissao": "Construção civil",
+    "especialidade": null,
     "escore": 25,
     "perfil": "colapso",
     "titulo": "Colapso do Guardião",
     "cor": "#EF4444",
-    "descricao": "Seu diagnóstico indica um estado de esgotamento avançado. Você está operando no limite — e o seu corpo, a sua família e o seu negócio estão pagando o preço. Isso não é fraqueza. É o resultado de anos de um sistema que ensinou médicos a se anular. A boa notícia: você reconheceu o problema. E reconhecer é o primeiro passo para mudar.",
+    "descricao": "Texto longo do perfil, pronto para colar no corpo do e-mail.",
     "acoes": [
-      "Agende uma consulta de urgência com um médico de confiança para avaliação do seu estado físico e emocional.",
-      "Implemente imediatamente os 3 Blocos Inegociáveis na sua agenda: Armadura (treino), Silêncio (deep work) e Legado (família).",
-      "Delegue pelo menos 3 tarefas recorrentes para a sua equipe ainda esta semana usando o Checklist de Delegação.",
-      "Agende o Painel do Guardião (bateria de exames completa) para os próximos 7 dias.",
-      "BÔNUS: Acesse o Desafio Guardião 21 Dias — foi criado exatamente para médicos no seu nível de alerta. Use o código GUARDIAO2025."
+      "Acao 1 do perfil",
+      "Acao 2 do perfil",
+      "Acao 3 do perfil",
+      "Acao 4 do perfil",
+      "Acao 5 do perfil"
     ],
-    "respostas": { "p1": 2, "p2": 1, "p3": 2 }
+    "respostas": { "T1": 2, "T2": 1, "T3": 2 }
   },
 
   "calculadora": {
     "evento": "calculadora",
-    "enviadoEm": "2026-08-13T21:44:26.927Z",
+    "enviadoEm": "2026-08-26T21:44:26.927Z",
     "origemPagina": "/calculadora",
-    "nome": "Carlos Almeida",
-    "email": "carlos@exemplo.com",
-    "telefone": "+5511999998888",
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "telefone": "+55 11 99999-0000",
+    "regiao": "São Paulo - SP",
+    "profissao": "Pintura",
     "horasSemanais": 60,
     "valorConsulta": 300,
     "horaReal": "R$ 570,00"
@@ -50,21 +58,25 @@
 
   "masterclass": {
     "evento": "masterclass",
-    "enviadoEm": "2026-08-13T21:45:02.215Z",
+    "enviadoEm": "2026-08-26T21:45:02.215Z",
     "origemPagina": "/masterclass",
-    "nome": "Carlos Almeida",
-    "email": "carlos@exemplo.com",
-    "telefone": "+5511999998888",
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "telefone": "+55 11 99999-0000",
+    "regiao": "São Paulo - SP",
+    "profissao": "Real Estate",
     "especialidade": "Masterclass"
   },
 
   "desafio": {
     "evento": "desafio",
-    "enviadoEm": "2026-08-13T21:45:10.000Z",
+    "enviadoEm": "2026-08-26T21:45:10.000Z",
     "origemPagina": "/desafio-21-dias",
-    "nome": "Carlos Almeida",
-    "email": "carlos@exemplo.com",
-    "telefone": "+5511999998888",
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "telefone": "+55 11 99999-0000",
+    "regiao": "São Paulo - SP",
+    "profissao": "Roofing / telhados",
     "especialidade": "Desafio 21 Dias"
   }
 }

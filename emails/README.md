@@ -8,7 +8,8 @@ e-mail é o sistema do outro lado.
 
 Uma URL por evento, cadastradas como variáveis de ambiente na Vercel
 (Settings → Environment Variables). Evento sem URL é ignorado em silêncio — o
-lead continua sendo gravado no Supabase normalmente.
+lead continua sendo gravado no CRM de Contatos normalmente, só não entra na
+sequência de e-mail.
 
 | Variável | Evento | Dispara quando |
 |---|---|---|
@@ -25,23 +26,33 @@ lead continua sendo gravado no Supabase normalmente.
 ```json
 {
   "evento": "diagnostico",
-  "enviadoEm": "2026-08-13T20:31:00.000Z",
+  "enviadoEm": "2026-08-26T20:31:00.000Z",
   "origemPagina": "/diagnostico",
-  "nome": "Carlos Almeida",
-  "email": "carlos@exemplo.com",
-  "telefone": "+5511999998888"
+  "nome": "Maria Silva",
+  "email": "maria@exemplo.com",
+  "telefone": "+55 11 99999-0000",
+  "regiao": "São Paulo - SP",
+  "profissao": "Construção civil"
 }
 ```
+
+`regiao` e `profissao` são as duas perguntas novas dos formulários. `profissao`
+vem da lista fechada de `src/lib/lead-fields.ts` — o texto chega exatamente
+como está lá, o que permite segmentar por ela no GHL sem normalizar nada.
 
 E mais, conforme o evento:
 
 | Evento | Campos adicionais |
 |---|---|
-| `ebook` | `especialidade`, `origem` (parâmetro `?src=` do Reel), `pdfUrl` |
-| `diagnostico` | `especialidade`, `escore`, `perfil`, `titulo`, `cor`, `descricao`, `acoes` (5 itens), `respostas` |
+| `ebook` | `origem` (parâmetro `?src=` do Reel), `pdfUrl`, `especialidade` (sempre `null`) |
+| `diagnostico` | `escore`, `perfil`, `titulo`, `cor`, `descricao`, `acoes` (5 itens), `respostas`, `especialidade` (sempre `null`) |
 | `calculadora` | `horasSemanais`, `valorConsulta`, `horaReal` |
-| `masterclass` | `especialidade` |
-| `desafio` | `especialidade` |
+| `masterclass` | `especialidade` (sempre `"Masterclass"`) |
+| `desafio` | `especialidade` (sempre `"Desafio 21 Dias"`) |
+
+> `especialidade` é herança do material original, quando o formulário perguntava
+> a especialidade médica. Continua no payload para não quebrar quem já mapeou o
+> campo, mas o dado útil agora é `profissao`.
 
 ### Sobre o diagnóstico
 
@@ -97,14 +108,35 @@ por índice (`acoes.0` … `acoes.4`) — me avise se preferir que eu mande as 5
 ações como 5 campos separados (`acao1` … `acao5`), que é um ajuste de uma linha
 aqui.
 
-## Ainda sem copy
+## Sequências no GHL
 
-Estes eventos disparam o webhook com os dados corretos, mas **nunca tiveram
-texto de e-mail escrito** — precisam de copy antes de serem ligados:
+As sequências foram escritas direto no GoHighLevel, uma por isca. O site
+dispara **apenas o d0**; o restante do drip é o workflow do GHL:
 
-- **`calculadora`** — a tela diz "Resultado enviado para o seu email ✓", mas o
-  backend original só notificava a equipe; o lead nunca recebeu nada.
-- **`masterclass`** — a página promete "Enviamos os detalhes de acesso para o
-  seu email".
-- **`desafio`** — a página `/obrigado` promete e-mail de confirmação com link do
-  grupo de WhatsApp e cronograma das lives.
+| Evento do site | Sequência no GHL |
+|---|---|
+| `diagnostico` | `isca1-quiz` — d0, d1, d2, d4, d7 |
+| `calculadora` | `isca2-calculadora` — d0, d1, d2, d4, d7 |
+| `ebook` | `isca3-ebook` — d0, d1, d3 |
+| `masterclass` | `isca4-masterclass` — d0, d2 |
+| `desafio` | confirmação da inscrição |
+
+## Formulários que ainda não disparam webhook
+
+Dois formulários gravam o lead no CRM mas **não entram em nenhuma sequência**,
+porque não existe evento definido para eles:
+
+- **Contato da home** (`/`) — o formulário "Agendar Conversa Estratégica",
+  que traz também um campo de mensagem livre.
+- **Iscas** (`/iscas`) — o formulário de acesso ao material, que sabe qual
+  isca foi pedida (vai no comentário do contato como "Material solicitado").
+
+Ligar qualquer um dos dois é acrescentar um evento em `src/lib/webhooks.ts` e
+a variável correspondente na Vercel.
+
+## E-mail do código de acesso
+
+O `auth-codigo-acesso.html` **não é webhook**. Quem envia é o Supabase Auth,
+porque o código de login não pode passar pelo navegador. Ele é colado nos
+templates *Magic Link* e *Confirm signup* do painel do Supabase, e sai pelo
+SMTP do Resend configurado em `Authentication → Emails`.
