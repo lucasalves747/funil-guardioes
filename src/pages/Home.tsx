@@ -549,10 +549,10 @@ function GuardioesSection() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-4">
-              <button className="btn-gold">
+              <a href="/guardioes" className="btn-gold">
                 Entrar na Comunidade
                 <ArrowRight size={14} />
-              </button>
+              </a>
               <button className="btn-ghost">
                 Saber Mais
               </button>
